@@ -75,7 +75,8 @@ def cache_file(url, cache_dir, force=False):
                 new_line = json.dumps({"url":url,"sha_f":sha_f,"sha_url":sha_url})+"\n"
                 print(new_line, file=sys.stderr)
                 fd.write(new_line)
-        print("Download Error:", url, file=sys.stderr)
+        else:
+            print("Download Error:", url, file=sys.stderr)
     else:
         try:
             # print("Trying Cache:", sha_file, file=sys.stderr)
