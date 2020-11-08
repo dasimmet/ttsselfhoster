@@ -5,6 +5,7 @@ def main():
     import json
     import re
     import sys
+    from urllib.parse import urlparse
     p = parser()
     args = p.parse_args()
     if args.input_file == "-":
@@ -21,8 +22,9 @@ def main():
                 sha_f = cache_file(val, args.server_dir, force=args.no_cache)
                 # print(sha_f, file=sys.stderr)
             if args.url and sha_f:
-                newurl = args.url + "/blocks/" + sha_f
-                dict_set(js, it[:-1], newurl)
+                newurl = args.url
+                newurl = newurl._replace(path=os.path.join(newurl.path,"blocks", sha_f))
+                dict_set(js, it[:-1], newurl.geturl())
 
     if args.output_file == None:
         if "SaveName" in js:
@@ -40,12 +42,13 @@ def main():
 
 def parser():
     import argparse
+    from urllib.parse import urlparse
     p = argparse.ArgumentParser()
     p.add_argument("-i","--input_file", default="-")
     p.add_argument("-o","--output_file", default=None)
     p.add_argument("-s","--server_dir", default="repo")
     p.add_argument("-n","--no_cache", action="store_true")
-    p.add_argument("-u","--url", default=None)
+    p.add_argument("-u","--url", type=urlparse, default=None)
     return p
 
 def dict_set(dic , path, val):
