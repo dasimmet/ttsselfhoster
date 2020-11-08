@@ -21,15 +21,19 @@ def main():
             if args.url and sha_f:
                 newurl = args.url + "/blocks/" + sha_f
                 dict_set(js, it[:-1], newurl)
+
     if args.output_file == None:
         if args.server_dir != None:
-            args.output_file = os.path.join(args.server_dir , os.path.basename(args.input_file))
+            if "SaveName" in js:
+                args.output_file = os.path.join(args.server_dir, safe_name(js["SaveName"]) + ".json")
+            else:
+                args.output_file = os.path.join(args.server_dir , os.path.basename(args.input_file))
         else:
             args.output_file = "/dev/stdout"
     elif args.output_file == "-":
         args.output_file = "/dev/stdout"
     with open(args.output_file, "w") as fd:
-        json.dump(js, fd)
+        json.dump(js, fd, indent=4)
 
 
 def parser():
@@ -48,6 +52,11 @@ def dict_set(dic , path, val):
         last_dic = iter_dic
         iter_dic = iter_dic[p]
     last_dic[p] = val
+
+def safe_name(fname):
+    import re
+    fname = fname.replace(" ","_")
+    return re.sub("[^a-zA-Z0-9_]+", "", fname)
 
 
 def cache_file(url, cache_dir, force=False):
