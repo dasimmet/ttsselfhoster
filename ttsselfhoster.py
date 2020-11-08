@@ -5,13 +5,35 @@ def main():
     import json
     import re
     import sys
+    import hashlib
     from urllib.parse import urlparse
     p = parser()
     args = p.parse_args()
     if args.input_file == "-":
         args.input_file = "/dev/stdin"
+
+
+
+    sha_input = hashlib.sha256()
     with open(args.input_file) as fd:
-        js = json.load(fd)
+        js = fd.read()
+        sha_input.update(js.encode("utf-8"))
+        js = json.loads(js)
+
+    input_info = {
+        "sha256":sha_input.hexdigest()
+    }
+    if "SaveName" in js:
+        input_info["SaveName"] = js["SaveName"]
+
+    if args.output_file == None:
+        if "SaveName" in js:
+            args.output_file = os.path.join(args.server_dir, safe_name(js["SaveName"]) + ".json")
+        else:
+            args.output_file = "-"
+    if args.output_file == "-":
+        args.output_file = "/dev/stdout"
+
     jsgen = dict_generator(js)
     url_regex = re.compile("^https?://")
     for it in jsgen:
@@ -19,23 +41,13 @@ def main():
         if type(val)==str and url_regex.match(val):
             # print(it, file=sys.stderr)
             if args.server_dir:
-                sha_f = cache_file(val, args.server_dir, force=args.no_cache)
+                sha_f = cache_file(val, args.server_dir, force=args.no_cache, input_info=input_info)
                 # print(sha_f, file=sys.stderr)
             if args.url and sha_f:
                 newurl = args.url
                 newurl = newurl._replace(path=os.path.join(newurl.path,"blocks", sha_f))
                 dict_set(js, it[:-1], newurl.geturl())
 
-    if args.output_file == None:
-        if "SaveName" in js:
-            args.output_file = os.path.join(args.server_dir, safe_name(js["SaveName"]) + ".json")
-        else:
-            if args.input_file[:4] == "/dev":
-                args.output_file = os.path.join(args.server_dir , os.path.basename(args.input_file))
-            else:
-                args.output_file = "-"
-    if args.output_file == "-":
-        args.output_file = "/dev/stdout"
     with open(args.output_file, "w") as fd:
         json.dump(js, fd, indent=4)
 
@@ -64,7 +76,7 @@ def safe_name(fname):
     return re.sub("[^a-zA-Z0-9_]+", "", fname)
 
 
-def cache_file(url, cache_dir, force=False):
+def cache_file(url, cache_dir, force=False, input_info={}):
     import os
     import hashlib
     import json
@@ -86,7 +98,7 @@ def cache_file(url, cache_dir, force=False):
                 for line in fd.readlines():
                     if json.loads(line)["sha_f"] == sha_f:
                         return sha_f
-                new_line = json.dumps({"url":url,"sha_f":sha_f,"sha_url":sha_url})+"\n"
+                new_line = json.dumps({"url":url,"sha_f":sha_f,"sha_url":sha_url, "input_info":input_info})+"\n"
                 print(new_line, file=sys.stderr)
                 fd.write(new_line)
         else:
