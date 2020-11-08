@@ -7,6 +7,8 @@ def main():
     import sys
     p = parser()
     args = p.parse_args()
+    if args.input_file == "-":
+        args.input_file = "/dev/stdin"
     with open(args.input_file) as fd:
         js = json.load(fd)
     jsgen = dict_generator(js)
@@ -23,14 +25,14 @@ def main():
                 dict_set(js, it[:-1], newurl)
 
     if args.output_file == None:
-        if args.server_dir != None:
-            if "SaveName" in js:
-                args.output_file = os.path.join(args.server_dir, safe_name(js["SaveName"]) + ".json")
-            else:
-                args.output_file = os.path.join(args.server_dir , os.path.basename(args.input_file))
+        if "SaveName" in js:
+            args.output_file = os.path.join(args.server_dir, safe_name(js["SaveName"]) + ".json")
         else:
-            args.output_file = "/dev/stdout"
-    elif args.output_file == "-":
+            if args.input_file[:4] == "/dev":
+                args.output_file = os.path.join(args.server_dir , os.path.basename(args.input_file))
+            else:
+                args.output_file = "-"
+    if args.output_file == "-":
         args.output_file = "/dev/stdout"
     with open(args.output_file, "w") as fd:
         json.dump(js, fd, indent=4)
@@ -39,7 +41,7 @@ def main():
 def parser():
     import argparse
     p = argparse.ArgumentParser()
-    p.add_argument("input_file")
+    p.add_argument("-i","--input_file", default="-")
     p.add_argument("-o","--output_file", default=None)
     p.add_argument("-s","--server_dir", default="repo")
     p.add_argument("-n","--no_cache", action="store_true")
