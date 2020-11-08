@@ -82,7 +82,7 @@ def cache_file(url, cache_dir, force=False):
     if force or (not os.path.isfile(sha_file)):
         sha_f = get_file(url, cache_dir, sha_file)
         if sha_f:
-            with open(url_file, "w+") as fd:
+            with open(url_file, "a+") as fd:
                 for line in fd.readlines():
                     if json.loads(line)["sha_f"] == sha_f:
                         return sha_f
