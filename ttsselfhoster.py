@@ -21,18 +21,21 @@ def main():
             if args.url and sha_f:
                 newurl = args.url + "/blocks/" + sha_f
                 dict_set(js, it[:-1], newurl)
-    if args.output_file == None and args.server_dir != None:
-        args.output_file = os.path.join(args.server_dir , "output.json")
+    if args.output_file == None:
+        if args.server_dir != None:
+            args.output_file = os.path.join(args.server_dir , os.path.basename(args.input_file))
+        else:
+            args.output_file = "/dev/stdout"
     elif args.output_file == "-":
         args.output_file = "/dev/stdout"
     with open(args.output_file, "w") as fd:
-        json.dump(js, sys.stdout)
+        json.dump(js, fd)
 
 
 def parser():
     import argparse
     p = argparse.ArgumentParser()
-    p.add_argument("-f","--input_file", required=True)
+    p.add_argument("input_file")
     p.add_argument("-o","--output_file", default=None)
     p.add_argument("-s","--server_dir", default="repo")
     p.add_argument("-n","--no_cache", action="store_true")
@@ -69,15 +72,17 @@ def cache_file(url, cache_dir, force=False):
                 for line in fd.readlines():
                     if json.loads(line)["sha_f"] == sha_f:
                         return sha_f
-                fd.write(json.dumps({"url":url,"sha_f":sha_f,"sha_url":sha_url})+"\n")
+                new_line = json.dumps({"url":url,"sha_f":sha_f,"sha_url":sha_url})+"\n"
+                print(new_line, file=sys.stderr)
+                fd.write(new_line)
+        print("Download Error:", url, file=sys.stderr)
     else:
         try:
-            print("Trying Cache:", sha_file, file=sys.stderr)
+            # print("Trying Cache:", sha_file, file=sys.stderr)
             sha_f = open(sha_file).read()
         except Exception as ex:
             print(ex, file=sys.stderr)
             sha_f = None
-    print("Found:", sha_f, file=sys.stderr)
 
 
 
