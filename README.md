@@ -6,9 +6,13 @@ this is a python3 Script to download Ressources for Tabletop Simulator.
 - downloads all found Assets in an output directory
 - builds sha512sums of them
 - replaces the url in the json if one is supplied via "-u"
+- if url cannot be dowloaded, it wont be replaced
 - and outputs a edited JSON Save file into the output directory or stdout if "-o -" is given.
 
 the resulting json can be run in TTS, if the output directory is available via the supplied url.
+
+This does not parse the Safe game in any way and will not work with custom assets.
+
 
 ```
 usage: ttsselfhoster.py [-h] [-i INPUT_FILE] [-o OUTPUT_FILE] [-s SERVER_DIR]

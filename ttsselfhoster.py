@@ -23,6 +23,11 @@ def main():
     input_info = {
         "sha256":sha_input.hexdigest()
     }
+    if args.url:
+        js["_ttsselfhoster"] = {
+            "url": args.url.geturl(),
+            "origsha256":input_info["sha256"],
+        }
     if "SaveName" in js:
         input_info["SaveName"] = js["SaveName"]
 
