@@ -16,10 +16,10 @@ def main():
         if type(val)==str and url_regex.match(val):
             print(it, file=sys.stderr)
             if args.server_dir:
-                sha, cachefile = cache_file(val, args.server_dir)
-                print(cachefile, file=sys.stderr)
-            if args.url:
-                newurl = args.url + "/blocks/" + sha
+                sha_url, sha_f = cache_file(val, args.server_dir, force=args.no_cache)
+                print(sha_f, file=sys.stderr)
+            if args.url and sha_f:
+                newurl = args.url + "/blocks/" + sha_f
                 dict_set(js, it[:-1], newurl)
     if args.output_file == "-":
         json.dump(js, sys.stdout)
@@ -34,6 +34,7 @@ def parser():
     p.add_argument("-f","--input_file", required=True)
     p.add_argument("-o","--output_file", default="-")
     p.add_argument("-s","--server_dir", default=None)
+    p.add_argument("-n","--no_cache", action="store_true")
     p.add_argument("-u","--url", default=None)
     return p
 
@@ -45,35 +46,53 @@ def dict_set(dic , path, val):
     last_dic[p] = val
 
 
-def cache_file(url, cache_dir):
-    from urllib.request import urlopen
+def cache_file(url, cache_dir, force=True):
     import os
-    import uuid
     import hashlib
     blocks_dir = os.path.join(cache_dir,"blocks")
     sha_url = hashlib.sha512()
     sha_url.update(url.encode())
     sha_url = sha_url.hexdigest()
+    sha_dir = os.path.join(cache_dir, "sha")
+    sha_file = os.path.join(sha_dir, sha_url)
 
     if not os.path.isdir(blocks_dir):
         os.makedirs(blocks_dir)
+    if not os.path.isdir(sha_dir):
+        os.makedirs(sha_dir)
     cachefile = os.path.join(blocks_dir, sha_url)
-    mode = "wb"
-    # if os.path.isfile(cachefile):
-    #     mode = "rb"
-    BS=2**20
-    sha_req = hashlib.sha512()
-    sha_cache = hashlib.sha512()
-    with urlopen(url) as req:
-        with open(cachefile,mode) as fd:
-            BUF = True
-            while BUF:
-                BUF = req.read()
-                fd.write(BUF)
-                sha_req.update(BUF)
+    if force or (not os.path.isfile(cachefile)):
+        sha_req = get_file(url, cachefile, sha_file)
 
+    return (sha_url, sha_req)
 
-    return (sha_url, cachefile)
+def get_file(url, cachefile, sha_file):
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
+    import hashlib
+    import sys
+    import os
+    sha_f = hashlib.sha512()
+    try:
+        with urlopen(url) as req:
+            with open(cachefile,"wb") as fd:
+                BUF = True
+                while BUF:
+                    BUF = req.read()
+                    fd.write(BUF)
+                    sha_f.update(BUF)
+    except HTTPError as ex:
+        print(ex, file=sys.stderr)
+        try:
+            os.unlink(cachefile)
+            os.unlink(sha_file)
+        except:
+            pass
+        return None
+    sha_f = sha_f.hexdigest()
+    with open(sha_file, "w") as fd:
+        fd.write(sha_f)
+    return sha_f
 
 def dict_generator(indict, pre=None):
     pre = pre[:] if pre else []
