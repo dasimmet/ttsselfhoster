@@ -14,10 +14,10 @@ def main():
     for it in jsgen:
         val = it[-1]
         if type(val)==str and url_regex.match(val):
-            print(it, file=sys.stderr)
+            # print(it, file=sys.stderr)
             if args.server_dir:
                 sha_f = cache_file(val, args.server_dir, force=args.no_cache)
-                print(sha_f, file=sys.stderr)
+                # print(sha_f, file=sys.stderr)
             if args.url and sha_f:
                 newurl = args.url + "/blocks/" + sha_f
                 dict_set(js, it[:-1], newurl)
@@ -50,22 +50,36 @@ def dict_set(dic , path, val):
 def cache_file(url, cache_dir, force=False):
     import os
     import hashlib
+    import json
+    import sys
     sha_url = hashlib.sha512()
     sha_url.update(url.encode())
     sha_url = sha_url.hexdigest()
     sha_dir = os.path.join(cache_dir, "sha")
     sha_file = os.path.join(sha_dir, sha_url)
+    url_file = os.path.join(cache_dir, "urls.txt")
 
     if not os.path.isdir(sha_dir):
         os.makedirs(sha_dir)
     sha_f = None
     if force or (not os.path.isfile(sha_file)):
         sha_f = get_file(url, cache_dir, sha_file)
+        if sha_f:
+            with open(url_file, "w+") as fd:
+                for line in fd.readlines():
+                    if json.loads(line)["sha_f"] == sha_f:
+                        return sha_f
+                fd.write(json.dumps({"url":url,"sha_f":sha_f,"sha_url":sha_url})+"\n")
     else:
         try:
-            sha_f = sha_file.open(sha_file).read()
-        except:
+            print("Trying Cache:", sha_file, file=sys.stderr)
+            sha_f = open(sha_file).read()
+        except Exception as ex:
+            print(ex, file=sys.stderr)
             sha_f = None
+    print("Found:", sha_f, file=sys.stderr)
+
+
 
     return sha_f
 
